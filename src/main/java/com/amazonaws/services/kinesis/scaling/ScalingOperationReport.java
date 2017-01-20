@@ -30,17 +30,24 @@ public class ScalingOperationReport {
 	private ScaleDirection scaleDirection;
 	private ScalingCompletionStatus endStatus;
 	private ObjectMapper mapper = new ObjectMapper();
-
-	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report) {
-		this(endStatus, report, 0, ScaleDirection.NONE);
-	}
+	private String scalingMessage;
 
 	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report,
 			int operationsMade, ScaleDirection scaleDirection) {
+		this(endStatus, report, 0, scaleDirection, null);
+	}
+
+	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report) {
+		this(endStatus, report, 0, ScaleDirection.NONE, null);
+	}
+
+	public ScalingOperationReport(ScalingCompletionStatus endStatus, Map<String, ShardHashInfo> report,
+			int operationsMade, ScaleDirection scaleDirection, String scalingMessage) {
 		this.endStatus = endStatus;
 		this.layout = report;
 		this.operationsMade = operationsMade;
 		this.scaleDirection = scaleDirection;
+		this.scalingMessage = scalingMessage;
 	}
 
 	public ScalingCompletionStatus getEndStatus() {
@@ -61,6 +68,10 @@ public class ScalingOperationReport {
 
 	public String asJson() throws Exception {
 		return mapper.writeValueAsString(this);
+	}
+
+	public String getScalingMessage() {
+		return this.scalingMessage;
 	}
 
 	/**

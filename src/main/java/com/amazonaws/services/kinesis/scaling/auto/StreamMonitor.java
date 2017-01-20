@@ -283,10 +283,7 @@ public class StreamMonitor implements Runnable {
 				}
 
 				// send SNS notifications
-				if (this.config.getScaleUp().getNotificationARN() != null && this.snsClient != null) {
-					StreamScalingUtils.sendNotification(this.snsClient, this.config.getScaleUp().getNotificationARN(),
-							"Kinesis Autoscaling - Scale Up", (report == null ? "No Changes Made" : report.asJson()));
-				}
+				sendNotification(report);
 			} else if (finalScaleDirection.equals(ScaleDirection.DOWN)) {
 				// check the cool down interval
 				if (lastScaleDown != null
@@ -318,11 +315,7 @@ public class StreamMonitor implements Runnable {
 						lastScaleDown = new DateTime(System.currentTimeMillis());
 
 						// send SNS notifications
-						if (this.config.getScaleDown().getNotificationARN() != null && this.snsClient != null) {
-							StreamScalingUtils.sendNotification(this.snsClient,
-									this.config.getScaleDown().getNotificationARN(), "Kinesis Autoscaling - Scale Down",
-									(report == null ? "No Changes Made" : report.asJson()));
-						}
+						sendNotification(report);
 					} catch (AlreadyOneShardException aose) {
 						// do nothing - we're already at 1 shard
 						LOG.info(String.format("Stream %s: Not Scaling Down - Already at Minimum of 1 Shard",
@@ -332,15 +325,59 @@ public class StreamMonitor implements Runnable {
 			} else {
 				// scale direction not set, so we're not going to scale
 				// up or down - everything fine
-				LOG.info("No Scaling required - Stream capacity within specified tolerances");
+				String scalingMessage = String.format("No Scaling required - Stream %s capacity within specified tolerances",
+						this.config.getStreamName());
+				LOG.info(scalingMessage);
 				return this.scaler.reportFor(ScalingCompletionStatus.NoActionRequired, this.config.getStreamName(), 0,
-						finalScaleDirection);
+						finalScaleDirection, scalingMessage);
 			}
 		} catch (Exception e) {
 			LOG.error("Failed to process stream " + this.config.getStreamName(), e);
 		}
 
 		return report;
+	}
+
+	private void sendNotification(ScalingOperationReport report) throws Exception {
+		if (this.config.getScaleUp().getNotificationARN() == null || this.snsClient == null) {
+			return;
+		}
+
+		String subject = null;
+		String message = null;
+		String arn = null;
+		boolean isNotifyOnAllActions = true;
+		boolean isNotifyReports = true;
+
+		switch(report.getScaleDirection()) {
+		case NONE:
+			return;
+		case UP:
+			subject = "Kinesis Autoscaling - Scale Up";
+			arn = this.config.getScaleUp().getNotificationARN();
+			isNotifyOnAllActions = config.getScaleUp().isNotifyOnAllActions();
+			isNotifyReports = config.getScaleUp().isNotifyReports();
+			break;
+		case DOWN:
+			subject = "Kinesis Autoscaling - Scale Down";
+			arn = this.config.getScaleDown().getNotificationARN();
+			isNotifyOnAllActions = config.getScaleDown().isNotifyOnAllActions();
+			isNotifyReports = config.getScaleDown().isNotifyReports();
+			break;
+		}
+
+		if (isNotifyReports && report != null) {
+			message = report.asJson();
+		} else if (!isNotifyReports && report != null) {
+			message = report.getScalingMessage();
+		} else {
+			message = "No Changes Made";
+		}
+
+		if (isNotifyOnAllActions || report.getEndStatus() == ScalingCompletionStatus.Ok
+				|| report.getEndStatus() == ScalingCompletionStatus.AlreadyAtMaximum) {
+			StreamScalingUtils.sendNotification(this.snsClient, arn, subject, message);
+		}
 	}
 
 	@Override

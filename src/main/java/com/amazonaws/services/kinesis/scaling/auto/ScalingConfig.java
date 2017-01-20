@@ -24,6 +24,8 @@ public class ScalingConfig {
 
 	private Integer scaleAfterMins, coolOffMins, scaleCount, scaleThresholdPct, scalePct;
 	private String notificationARN;
+	private boolean notifyOnAllActions = true;
+	private boolean notifyReports = true;
 
 	public Integer getScaleThresholdPct() {
 		return scaleThresholdPct;
@@ -71,5 +73,21 @@ public class ScalingConfig {
 
 	public void setNotificationARN(String notificationARN) {
 		this.notificationARN = notificationARN;
+	}
+
+	public boolean isNotifyOnAllActions() {
+		return notifyOnAllActions;
+	}
+
+	public void setNotifyOnAllActions(boolean notifyOnAllActions) {
+		this.notifyOnAllActions = notifyOnAllActions;
+	}
+
+	public boolean isNotifyReports() {
+		return notifyReports;
+	}
+
+	public void setNotifyReports(boolean notifyReports) {
+		this.notifyReports = notifyReports;
 	}
 }

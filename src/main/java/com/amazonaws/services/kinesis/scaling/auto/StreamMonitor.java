@@ -276,7 +276,7 @@ public class StreamMonitor implements Runnable {
 							currentShardCount + scaleUpCount, this.config.getMinShards(), this.config.getMaxShards());
 				} else {
 					report = this.scaler.updateShardCount(this.config.getStreamName(), currentShardCount,
-							new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
+							currentShardCount + new Double(currentShardCount * (new Double(this.config.getScaleUp().getScalePct()) / 100))
 									.intValue(),
 							this.config.getMinShards(), this.config.getMaxShards());
 

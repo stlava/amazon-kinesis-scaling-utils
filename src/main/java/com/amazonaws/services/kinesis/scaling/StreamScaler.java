@@ -106,7 +106,7 @@ public class StreamScaler {
 
 	/**
 	 * Get a references to the Kinesis Client in use
-	 * 
+	 *
 	 * @return
 	 */
 	protected AmazonKinesisClient getClient() {
@@ -115,7 +115,7 @@ public class StreamScaler {
 
 	/**
 	 * Scale up a Stream by a fixed amount of Shards
-	 * 
+	 *
 	 * @param streamName
 	 *            The Stream name to scale
 	 * @param byShardCount
@@ -148,7 +148,7 @@ public class StreamScaler {
 
 	/**
 	 * Scale down a Stream by a fixed number of Shards
-	 * 
+	 *
 	 * @param streamName
 	 *            The Stream name to scale
 	 * @param byShardCount
@@ -173,7 +173,7 @@ public class StreamScaler {
 
 	/**
 	 * Scale down a Shard by a Percentage of current capacity
-	 * 
+	 *
 	 * @param streamName
 	 *            The Stream name to scale
 	 * @param byPct
@@ -205,7 +205,7 @@ public class StreamScaler {
 	/**
 	 * Scale up a Stream by a Percentage of current capacity. Gentle reminder -
 	 * growing by 100% (1) is doubling in size, growing by 200% (2) is tripling
-	 * 
+	 *
 	 * @param streamName
 	 *            The Stream name to scale
 	 * @param byPct
@@ -230,7 +230,7 @@ public class StreamScaler {
 
 	/**
 	 * Resize a Stream to the indicated number of Shards
-	 * 
+	 *
 	 * @param streamName
 	 *            The Stream name to scale
 	 * @param targetShardCount
@@ -469,8 +469,22 @@ public class StreamScaler {
 				getOpenShardStack(streamName), minShards, maxShards, scalingMessage);
 	}
 
+	private int restrictUpdateShardCount(int currentShardCount, int targetShardCount){
+		// In a single change, open shards are restricted to scaling between half
+		// and double the current number of open shards.
+		if (targetShardCount > currentShardCount && targetShardCount > currentShardCount * 2) {
+			targetShardCount = currentShardCount * 2;
+		} else if (targetShardCount < currentShardCount && targetShardCount <= currentShardCount / 2) {
+			targetShardCount = (int) Math.ceil((double) currentShardCount / 2);
+		}
+
+		return targetShardCount;
+	}
+
 	public ScalingOperationReport updateShardCount(String streamName, int currentShardCount, int targetShardCount,
 			Integer minShards, Integer maxShards) throws Exception {
+		targetShardCount = restrictUpdateShardCount(currentShardCount, targetShardCount);
+
 		if (currentShardCount != targetShardCount) {
 			// ensure we dont go below/above min/max
 			if (minShards != null && targetShardCount < minShards) {

@@ -1,0 +1,7 @@
+2017-07-19 - .9.5.4-nd1.0.2
+
+This point release contains changes to:
+
+  * alter UpdateShardCount API requests to not update the count more than
+    double, or less than half. This is because a vague error is returned from
+    the AWS API when attempting this and results in a failure to update count.
